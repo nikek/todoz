@@ -1,0 +1,10 @@
+{
+  "name": "Todoz",
+  "version": "0.0.1",
+  "description": "Playing with new tech",
+  "author": "Niklas Ek",
+  "dependencies": {
+    "redux": "^3.0.4",
+    "riot": "^2.3.1"
+  }
+}

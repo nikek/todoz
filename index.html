@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>TODOZ</title>
+
+    <style media="screen">
+      li { cursor: pointer; }
+      .done { text-decoration: line-through; }
+    </style>
+    <script type="text/javascript" src="node_modules/redux/dist/redux.min.js"></script>
+    <script type="text/javascript" src="node_modules/riot/riot.min.js"></script>
+  </head>
+  <body>
+    <h2>Todo app built on Redux and Riot</h2>
+
+    <todo-form></todo-form>
+    <todo-list></todo-list>
+
+    <script type="text/javascript">
+
+      (function(){
+      /**
+      * <todo-form>
+      *
+      * (presentational component)
+      *
+      * @opts: add - function
+      */
+
+      riot.tag(
+        'todo-form',
+        ['<form>',
+          '<input><button onclick="{add}">Add todo</button>',
+        '</form>'].join('\n'),
+        function(opts) {
+          this.on('mount', () => this.input = this.root.querySelector('input'))
+
+          this.add = function(e) {
+            if(!this.input.value) return
+            opts.add(this.input.value)
+            this.input.value = ''
+          }
+        }
+      )
+
+      /**
+      * <todo-list>
+      *
+      * (presentational component)
+      *
+      * @opts: todos - array [Objects]
+      *        toggleComplete - function(*index of todo*) // the simplest of IDs
+      */
+
+      riot.tag('todo-list',[
+        '<ul>',
+          '<li each="{ todo, i in opts.todos }" onclick="{ toggleComplete }" class="{ done: todo.completed }">{todo.text}</li>',
+        '</ul>'].join('\n'),
+        function(opts){
+          this.toggleComplete = function(e) {
+            opts.toggleComplete(e.item.i)
+          }
+        }
+      )
+
+
+      // ACTION TYPES - used to avoid typos and to document all the available actions
+      var TODO_ADD = 'TODO_ADD'
+      var TODO_TOGGLE_COMPLETE = 'TODO_TOGGLE_COMPLETE'
+
+      // REDUCER - used to update the store in a predicable way
+      // This is a pure function(inlcluding eventual subreducers) - no side effects - never modifying arguments
+      var reducer = function(state, action) {
+
+        switch (action.type) {
+          case TODO_ADD:
+            return state.concat({ text: action.text, completed: false })
+
+          case TODO_TOGGLE_COMPLETE:
+            return state.map(function(todo, i) {
+              return i === action.index ? Object.assign({}, todo, {completed: !todo.completed}) : todo
+            })
+
+          default:
+            return state
+        }
+      }
+
+      // STORE - our singleton to store data, on update: run reducers and then run listeners
+      var store = Redux.createStore(reducer, [])  // defaultState = []
+
+      // INTENTS - used to dispatch actions to the store.
+      var addTodo = function(value){ store.dispatch({type: TODO_ADD, text: value}) }
+      var toggleComplete = function(index) { store.dispatch({type: TODO_TOGGLE_COMPLETE, index: index}) }
+
+      // ELEMENTS - the presentation components gets the intent functions and state passed down to them as opts
+      var form = riot.mount('todo-form', { add: addTodo })[0]
+      var list = riot.mount('todo-list', { todos: store.getState(), toggleComplete: toggleComplete })[0]
+
+      // ON STATE UPDATE
+      store.subscribe(function(){
+        list.opts = { todos: store.getState() }
+        list.update()
+        console.log(store.getState(), list)
+      })
+
+    }())
+    </script>
+  </body>
+</html>
